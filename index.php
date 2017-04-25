@@ -1,489 +1,481 @@
 <?php
-define('API_KEY','361884250:AAG68qzLAzu-HKaR2BUJ71Iae7devL4t2Bs');
-//----######------
-function makereq($method,$datas=[]){
-    $url = "https://api.telegram.org/bot".API_KEY."/".$method;
-    $ch = curl_init();
-    curl_setopt($ch,CURLOPT_URL,$url);
-    curl_setopt($ch,CURLOPT_RETURNTRANSFER,true);
-    curl_setopt($ch,CURLOPT_POSTFIELDS,http_build_query($datas));
-    $res = curl_exec($ch);
-    if(curl_error($ch)){
-        var_dump(curl_error($ch));
-    }else{
-        return json_decode($res);
-    }
-}
-//##############=--API_REQ
-function apiRequest($method, $parameters) {
-  if (!is_string($method)) {
-    error_log("Method name must be a string\n");
-    return false;
-  }
-  if (!$parameters) {
-    $parameters = array();
-  } else if (!is_array($parameters)) {
-    error_log("Parameters must be an array\n");
-    return false;
-  }
-  foreach ($parameters as $key => &$val) {
-    // encoding to JSON array parameters, for example reply_markup
-    if (!is_numeric($val) && !is_string($val)) {
-      $val = json_encode($val);
-    }
-  }
-  $url = "https://api.telegram.org/bot".API_KEY."/".$method.'?'.http_build_query($parameters);
-  $handle = curl_init($url);
-  curl_setopt($handle, CURLOPT_RETURNTRANSFER, true);
-  curl_setopt($handle, CURLOPT_CONNECTTIMEOUT, 5);
-  curl_setopt($handle, CURLOPT_TIMEOUT, 60);
-  return exec_curl_request($handle);
-}
-//----######------
-//---------
+ob_start();
+include 'Class.php';
+
+$button_tiid = json_encode(['keyboard'=>[
+[['text'=>'تایید شماره','request_contact'=>true]],
+[['text'=>'چرا باید شمارمو تایید کنم']],
+],'resize_keyboard'=>true]);
+$button_manage = json_encode(['keyboard'=>[
+[['text'=>'↩️منوی اصلی']],
+[['text'=>'پیام همگانی'],['text'=>'فوروارد همگانی']],
+[['text'=>'آمار'],['text'=>'تعیین کد رایگان']],
+[['text'=>'سکه به کاربر']],
+],'resize_keyboard'=>true]);
+$button_official = json_encode(['keyboard'=>[
+[['text'=>'جمع آوری سکه رایگان 💰']],
+[['text'=>'فروشگاه سکه 💸'],['text'=>'انتقال سکه ♐'],['text'=>'ثبت تبلیغات 📝']],
+[['text'=>'زیرمجموعه گیری 📮'],['text'=>'حساب کاربری من 💡']],
+[['text'=>'ارسال نظر ✉'],['text'=>'راهنما 📋']],
+[['text'=>'کد رایگان 🔧']],
+],'resize_keyboard'=>true]);
+$button_back = json_encode(['keyboard'=>[
+[['text'=>'↩️منوی اصلی']],
+],'resize_keyboard'=>true]);
+$button_nz = json_encode(['inline_keyboard'=>[
+[['text'=>'نظر بعدی','callback_data'=>'nzr']],
+],'resize_keyboard'=>true]);
+$button_nza = json_encode(['inline_keyboard'=>[
+[['text'=>'تایید نظر','callback_data'=>'taiid nzr'],['text'=>'رد نظر','callback_data'=>'rad nzr']],
+],'resize_keyboard'=>true]);
+
 $update = json_decode(file_get_contents('php://input'));
-var_dump($update);
-//=========
+$data = $update->callback_query->data;
+$chatid = $update->callback_query->message->chat->id;
+$fromid = $update->callback_query->message->from->id;
+$messageid = $update->callback_query->message->message_id;
+$data_id = $update->callback_query->id;
+$txt = $update->callback_query->message->text;
 $chat_id = $update->message->chat->id;
-$message_id = $update->message->message_id;
 $from_id = $update->message->from->id;
-$name = $update->message->from->first_name;
-$username = $update->message->from->username;
-$textmessage = isset($update->message->text)?$update->message->text:'';
-$reply = $update->message->reply_to_message->forward_from->id;
-$stickerid = $update->message->reply_to_message->sticker->file_id;
+$from_username = $update->message->from->username;
+$from_first = $update->message->from->first_name;
+$forward_id = $update->message->forward_from->id;
+$forward_chat = $update->message->forward_from_chat;
+$forward_chat_username = $update->message->forward_from_chat->username;
+$forward_chat_msg_id = $update->message->forward_from_message_id;
+$text = $update->message->text;
+$message_id = $update->message->message_id;
+$stickerid = $update->message->sticker->file_id;
+$videoid = $update->message->video->file_id;
+$voiceid = $update->message->voice->file_id;
+$fileid = $update->message->document->file_id;
 $photo = $update->message->photo;
-$video = $update->message->video;
-$sticker = $update->message->sticker;
-$file = $update->message->document;
-$music = $update->message->audio;
-$voice = $update->message->voice;
-$forward = $update->message->forward_from;
-$admin = 294665580;
-//-------
-function SendMessage($ChatId, $TextMsg)
-{
- makereq('sendMessage',[
-'chat_id'=>$ChatId,
-'text'=>$TextMsg,
-'parse_mode'=>"MarkDown"
-]);
-}
-function SendSticker($ChatId, $sticker_ID)
-{
- makereq('sendSticker',[
-'chat_id'=>$ChatId,
-'sticker'=>$sticker_ID
-]);
-}
-function Forward($KojaShe,$AzKoja,$KodomMSG)
-{
-makereq('ForwardMessage',[
-'chat_id'=>$KojaShe,
-'from_chat_id'=>$AzKoja,
-'message_id'=>$KodomMSG
-]);
-}
-function save($filename,$TXTdata)
-	{
-	$myfile = fopen($filename, "w") or die("Unable to open file!");
-	fwrite($myfile, "$TXTdata");
-	fclose($myfile);
+$photoid = $photo[count($photo)-1]->file_id;
+$musicid = $update->message->audio->file_id;
+$caption = $update->message->caption;
+$cde = time();
+$code = md5("$cde$from_id");
+$command = file_get_contents('user/'.$from_id."/command.txt");
+$gold = file_get_contents('user/'.$from_id."/gold.txt");
+$coin = file_get_contents('user/'.$from_id."/coin.txt");
+$wait = file_get_contents('user/'.$from_id."/wait.txt");
+$coin_wait = file_get_contents('user/'.$wait."/coin.txt");
+$number = file_get_contents('user/'.$from_id."/number.txt");
+$code_taiid = file_get_contents('user/'.$from_id."/code taiid.txt");
+$Member = file_get_contents('admin/Member.txt');
+$NZR = file_get_contents('admin/NZR.txt');
+$Tedad_Nazar = file_get_contents('admin/Tedad Nazar.txt');
+$ads = file_get_contents('ads/Ads.txt');
+
+// start source
+    if (strpos($block , "$from_id") !== false) {
+	return false;
 	}
-//===========
-
-    $step = "";
-    if (file_exists("data/users/$from_id/step.txt")) {
-      $step = file_get_contents("data/users/$from_id/step.txt");
-    }
-    if ($textmessage == "/cancel") {
-var_dump(makereq('sendMessage',[
-        'chat_id'=>$update->message->chat->id,
-        'text'=>"تمامی موارد کنسل شدند",
-        'parse_mode'=>'MarkDown',
-        'reply_markup'=>json_encode([
-              'keyboard'=>[
-              [
-                ['text'=>"فروشگاه 🛒"],['text'=>"خرید الماس 💎"]
-              ],
-			  [
-			    ['text'=>"👥پشتیبانی"],['text'=>"انتقال الماس ♻️"]
-			  ],
-			  [
-			  ['text'=>"کد هدیه 🛍"],['text'=>"حساب کاربری 🔖"]
-			  ]
-            ],
-            'resize_keyboard'=>true
-        ])
-    ]));
-	save("data/users/$from_id/step.txt","none");
-    }
-	elseif ($textmessage == "بازگشت") {
-var_dump(makereq('sendMessage',[
-        'chat_id'=>$update->message->chat->id,
-        'text'=>"تمامی موارد کنسل شدند",
-        'parse_mode'=>'MarkDown',
-        'reply_markup'=>json_encode([
-            'keyboard'=>[
-              [
-                ['text'=>"فروشگاه 🛒"],['text'=>"خرید الماس 💎"]
-              ],
-			  [
-			    ['text'=>"👥پشتیبانی"],['text'=>"انتقال الماس ♻️"]
-			  ],
-			  [
-			  ['text'=>"کد هدیه 🛍"],['text'=>"حساب کاربری 🔖"]
-			  ]
-            ],
-            'resize_keyboard'=>true
-        ])
-    ]));
-	save("data/users/$from_id/step.txt","none");
-    }
-elseif ($textmessage == "انتقال الماس ♻️"){
-sendMessage($chat_id,"`این بخش موقتا غیر فعال میباشد`");
-} 
-    elseif ($step == "useCode") {
-      if (file_exists("data/codes/$textmessage.txt")) {
-        $price = file_get_contents("data/codes/$textmessage.txt");
-        $coin = file_get_contents("data/users/".$from_id."/coin.txt");
-        settype($coin,"integer");
-        $newcoin = $coin + $price;
-        save("data/users/".$from_id."/coin.txt",$newcoin);
-        unlink("data/codes/$textmessage.txt");
-        save("data/users/$from_id/step.txt","none");
-var_dump(makereq('sendMessage',[
-        'chat_id'=>$update->message->chat->id,
-        'text'=>"الماس های شما به مقدار `$price` افزایش یافت",
-        'parse_mode'=>'MarkDown',
-        'reply_markup'=>json_encode([
-         'keyboard'=>[
-              [
-                ['text'=>"فروشگاه 🛒"],['text'=>"خرید الماس 💎"]
-              ],
-			  [
-			    ['text'=>"👥پشتیبانی"],['text'=>"انتقال الماس ♻️"]
-			  ],
-			  [
-			  ['text'=>"کد هدیه 🛍"],['text'=>"حساب کاربری 🔖"]
-			  ]
-            ],
-            'resize_keyboard'=>true
-        ])
-    ]));
+	elseif ($from_id != $chat_id and $chat_id != $feed) {
+	LeaveChat($chat_id);
 	}
-      else {
-        SendMessage($chat_id,"کد وارد شده نا معتبر است");
-      }
-    }
-    elseif ($step == "settitle") {
-      SendMessage($chat_id,"توضیحات محصول :‌ ");
-      $count = file_get_contents("data/products/count.txt");
-      save("data/products/$count.txt",$textmessage."(******)");
-      save("data/products/$textmessage.txt",$count);
-      save("data/users/$from_id/step.txt","setabout");
-    }
-    elseif ($step == "setabout") {
-      SendMessage($chat_id,"لینک های خرید موفق : ");
-      $count = file_get_contents("data/products/count.txt");
-      $last= file_get_contents("data/products/$count.txt");
-      save("data/products/$count.txt",$last.$textmessage."(******)");
-      save("data/users/$from_id/step.txt","successLink");
-    }
-    elseif ($step == "successLink") {
-      SendMessage($chat_id,"قیمت محصول :‌ ");
-      $count = file_get_contents("data/products/count.txt");
-      $last= file_get_contents("data/products/$count.txt");
-      save("data/products/$count.txt",$last.$textmessage."(******)");
-      save("data/users/$from_id/step.txt","setprice");
-    }
-    elseif ($step == "setprice") {
-
-      $count = file_get_contents("data/products/count.txt");
-      $last = file_get_contents("data/products/$count.txt");
-      save("data/products/$count.txt",$last.$textmessage."");
-      save("data/users/$from_id/step.txt","none");
-      settype($count,"integer");
-      $newcount = $count + 1;
-      save("data/products/count.txt",$newcount);
-      SendMessage($chat_id,"محصول شماره $newcount ثبت شد .");
-    }
-    elseif ($textmessage == "محصول جدید" && $from_id == $admin) {
-      SendMessage($chat_id,"عنوان محصول : ");
-      save("data/users/$from_id/step.txt","settitle");
-    }
-
-    elseif ($textmessage == "فروشگاه 🛒") {
-      $keyboard = [];
-      $count = file_get_contents("data/products/count.txt");
-      $n = 0;
-      $text = "";
-      while ($n <= $count ) {
-        $post = file_get_contents("data/products/$n.txt");
-        $arrayPost = explode('(******)',$post);
-        $n = $n + 1;
-        array_push($keyboard,[$arrayPost['0']]);
-      }
-      json_encode($keyboard);
-
-      var_dump(makereq('sendMessage',[
-           'chat_id'=>$update->message->chat->id,
-           'text'=>"محصولات : ",
-     'parse_mode'=>'MarkDown',
-           'reply_markup'=>json_encode([
-               'keyboard'=>$keyboard,
-               'resize_keyboard'=>true
-           ])
-       ]));
-
-    }
-
-	 elseif(strpos($textmessage,'/start') !== false) {
-  $id = str_replace("/start ","",$textmessage);
-
-  if (!file_exists("data/users/$from_id/coin.txt")) {
-    mkdir("data/users/$from_id");
-    save("data/users/$from_id/coin.txt","0");
-    save("data/users/$from_id/step.txt","none");
-    save("data/users/$from_id/chance.txt","0|0");
-    $members = file_get_contents("Member.txt");
-    save("Member.txt",$members."$from_id\n");
-    SendMessage($chat_id,"ثبت نام با موفقیت انجام شد"); //mituni ino comment koni vase test has!
-
-    if ($id != "") {
-      if ($id != $from_id) {
-          SendMessage($id,"یک نفر از طریق لینک شما وارد ربات شد");
-          $coin = file_get_contents("data/users/$id/coin.txt");
-          settype($coin,"integer");
-          $newcoin = $coin + 1;
-          save("data/users/$id/coin.txt",$newcoin);
-      }
-      else {
-        SendMessage($chat_id,"شما قبلا درربات عضو بودید");
-      }
-    }
+	//===============
+  elseif($data == 'taiid nzr'){
+  AnswerCallbackQuery($data_id,'نظر تایید شد');
+  EditMessageText($chatid,$messageid,"نظر تایید شد",'html','true');
+  file_put_contents("admin/NZR.txt","$NZR\n(**##**)\n$txt");
   }
-var_dump(makereq('sendMessage',[
-        'chat_id'=>$update->message->chat->id,
-        'text'=>"سلام خوش امدید
-		این ربات کاملا اتوماتیک بوده و پس از پرداخت فورا محصول خود را دریافت میکنید
-		@NeroTeam > @NeroShopBot",
-        'parse_mode'=>'MarkDown',
-        'reply_markup'=>json_encode([
-          'keyboard'=>[
-              [
-                ['text'=>"فروشگاه 🛒"],['text'=>"خرید الماس 💎"]
-              ],
-			  [
-			    ['text'=>"👥پشتیبانی"],['text'=>"انتقال الماس ♻️"]
-			  ],
-			  [
-			  ['text'=>"کد هدیه 🛍"],['text'=>"حساب کاربری 🔖"]
-			  ]
-            ],
-            'resize_keyboard'=>true
-        ])
-    ]));
-}
-elseif ($textmessage == "پشتیبانی 👤"){
-sendMessage($chat_id,"پشتیبانی انلاین در خدمت شماست ، قبل از پیام به نکات زیر توجه کنید :
-- سوال در مورد محصولات نپرسید
-- از گفتن سلام و احوال پرسی جدا خودداری کنید
-- از تکرار سوال خود خودداری کنید
-- درخواست تخفیف یا الماس رایگان نکنید
-@NeroDevBot");
-}
-elseif($textmessage == "خرید الماس 💎"){
-sendMessage($chat_id,"برای خرید از فروشگاه باید الماس داشته باشی قیمت هر 4 تا الماس هزار تومنه و الماس ها در پک های 20 تایی ، 40 تایی و 80 تایی موجود است
-عدد زیر را در قسمت شناسه شما وارد کنید در غیر این صورت پرداخت ثبت نخواهد شد
-$chat_id
-[20 الماس (5 هزار تومان)](https://www.payping.ir/d/2REg)
-[40 الماس (10 هزار تومان)](https://www.payping.ir/d/C78P)
-[80 الماس (20 هزار تومان)](https://www.payping.ir/d/hvhj)");
-}
-elseif ($textmessage == "/panel" && $from_id == $admin){
-var_dump(makereq('sendMessage',[
-        'chat_id'=>$update->message->chat->id,
-        'text'=>"پنل مدیریت باز شد :",
-        'parse_mode'=>'MarkDown',
-        'reply_markup'=>json_encode([
-            'keyboard'=>[
-              [
-                ['text'=>"اهدای سکه"],['text'=>"کم کردن سکه"]
-              ],
-			  [
-			    ['text'=>"محصول جدید"],['text'=>"حذف محصول"]
-			  ]
-            ],
-            'resize_keyboard'=>true
-        ])
-    ]));  
+  elseif($data == 'rad nzr'){
+  AnswerCallbackQuery($data_id,'نظر رد شد');
+  EditMessageText($chatid,$messageid,"نظر رد شد",'html','true');
+  }
+  //===============
+  elseif($data == 'nzr'){
+  $exp = explode("(**##**)",$NZR);
+  $rand = $exp[rand(0,count($exp)-1)];
+  $txtt = file_get_contents('admin/Tedad Nazar.txt');
+  $member_id = explode("\n",$txtt);
+  $mmemcount = count($member_id) -1;
+  if($rand == null || $rand == '' || $rand == "\n"){
+  EditMessageText($chatid,$messageid,"نظر موجود نیس",'html','true');
+  }else{
+  AnswerCallbackQuery($data_id,'نظر بعدی');
+  EditMessageText($chatid,$messageid,"نظرات: $mmemcount
+  
+  $rand",'html','true',$button_nz);
+  }
+  }
+  //===============
+	elseif(preg_match('/^\/([Ss]tart)(.*)/',$text)){
+	preg_match('/^\/([Ss]tart)(.*)/',$text,$match);
+	$match[2] = str_replace(" ","",$match[2]);
+	$match[2] = str_replace("\n","",$match[2]);
+	if($match[2] != null){
+	if (strpos($Member , "$from_id") == false){
+	if($match[2] != $from_id){
+	if (strpos($gold , "$from_id") == false){
+	$txxt = file_get_contents('user/'.$match[2]."/gold.txt");
+    $pmembersid= explode("\n",$txxt);
+    if (!in_array($from_id,$pmembersid)){
+      $aaddd = file_get_contents('user/'.$match[2]."/gold.txt");
+      $aaddd .= $from_id."\n";
+		file_put_contents('user/'.$match[2]."/gold.txt",$aaddd);
+    }
+	$mtch = file_get_contents('user/'.$match[2]."/coin.txt");
+	file_put_contents("user/".$match[2]."/coin.txt",($mtch+1) );
+	SendMessage($match[2],"🆕 یک نفر با لینک اختصاصی شما وارد ربات شد","html","true",$button_official);
 	}
-elseif ($textmessage == "اهدای سکه" && $from_id == $admin){
-sendMessage($chat_id,"ادمین عزیز جهت اهدای سکه به کاربری از دستور زیر استفاده کنید
-/addcoin USERID COIN");
-}
- elseif ($textmessage == "کم کردن سکه" && $from_id == $admin){
-sendMessage($chat_id,"ادمین عزیز جهت کم کردن سکه کاربری از دستور زیر استفاده کنید
-/getcoin USERID COIN");
-}
-elseif ($textmessage == "حذف محصول" && $from_id == $admin){
-sendMessage($chat_id,"ادمین عزیز جهت حذف یک محصول از دستور زیر استفاده کنید
-/delpost PostId");
-}
-elseif (strpos($textmessage,"/getcoin") !== false && $from_id == $admin) {
-  $text = explode(" ",$textmessage);
-  if ($text['2'] != "" && $text['1'] != "") {
-    $coin = file_get_contents("data/users/".$text['1']."/coin.txt");
-    settype($coin,"integer");
-    $newcoin = $coin - $text['2'];
-    save("data/users/".$text['1']."/coin.txt",$newcoin);
-    SendMessage($chat_id,"عملیات فوق با موفقیت انجام شد");
-    SendMessage($text['1'],"ادمین از شما ".$text['2']." الماس کم کرد");
+	}
+	}
+	}
+	SendMessage($chat_id,"سلام خوش اومدی","html","true",$button_official);
+	}
+	//================
+	elseif($update->message->contact and $number == null){
+	$rand = rand(11111,55555);
+	$ce = $rand;
+	file_put_contents('user/'.$from_id."/code taiid.txt",$ce);
+	file_put_contents('user/'.$from_id."/command.txt","taiid nashode");
+	file_put_contents('user/'.$from_id."/number.txt",$update->message->contact->phone_number);
+	SendMessage($chat_id,"خوب حالا کد $ce رو وارد کنید تا ربات فعال شود","html","true",$button_tiid);
+	}
+	//================
+	elseif($command == "taiid nashode"){
+	if($text == $code_taiid){
+	file_put_contents('user/'.$from_id."/command.txt","none");
+	SendMessage($chat_id,"تایید شدید","html","true",$button_official);
+	}else{
+	SendMessage($chat_id,"کد اشتباه","html","true");
+	}
+	}
+	//===============
+  elseif($text == 'چرا باید شمارمو تایید کنم'){
+  file_put_contents('user/'.$from_id."/command.txt","none");
+  SendMessage($chat_id,"دوست عزیز شما برای استفاده از ربات باید شماره خود را ثبت و تایید کنید.","html","true");
   }
-  else {
-    SendMessage($chat_id,"Syntax Error!");
+	//================
+	elseif($number == null){
+	SendMessage($chat_id,"حتما باید شمارتونو تایید کنید 💉","html","true",$button_tiid);
+	}
+	//===============
+  elseif($text == '↩️منوی اصلی'){
+  file_put_contents('user/'.$from_id."/command.txt","none");
+  SendMessage($chat_id,"↩️ شما به منوی اصلی برگشتید.","html","true",$button_official);
   }
-}
-elseif (strpos($textmessage,"/delpost") !== false && $from_id == $admin) {
-  $id = str_replace("/delpost ","",$textmessage);
-  if (file_exists("data/products/$id.txt")) {
-    $product = file_get_contents("data/products/$id.txt");
-    $array = explode("(******)",$product);
-    $title = $array['0'];
-    unlink("data/products/$title.txt");
-    unlink("data/products/$id.txt");
-    SendMessage($chat_id,"محصول حذف شد");
+	//===============
+  elseif(preg_match('/^\/([Cc]reator)/',$text)){
+  SendMessage($chat_id,"ساخته شده توسط هکتور تیم\n@hektor_tm","html","true",$button_official);
   }
-  else {
-    SendMessage($chat_id,"محصول یافت نشد .");
+	//===============
+  elseif($text == 'فروشگاه سکه 💸'){
+  SendMessage($chat_id,"برای خرید سکه میتوانید به صورت زیر عمل کنید.
+100coin => 1000t \n 200coin=> 1500t \n 500coin => 3000t\nبرای خرید به ربات پشتیبانی مراجعه کنید:\n@amirpayambot","html","true",$button_official);
   }
-}
-elseif (strpos($textmessage,"کد هدیه") !== false) {
-  save("data/users/$from_id/step.txt","useCode");
-var_dump(makereq('sendMessage',[
-        'chat_id'=>$update->message->chat->id,
-        'text'=>"کد موردنظر را ارسال نمایید",
-        'parse_mode'=>'MarkDown',
-        'reply_markup'=>json_encode([
-            'keyboard'=>[
-              [
-                ['text'=>"بازگشت"]
-              ]
-            ],
-            'resize_keyboard'=>true
-        ])
-    ]));  
-
-}
-elseif (strpos($textmessage,"/createcode") !== false && $from_id == $admin) {
-  $text = explode(" ",$textmessage);
-  $code = $text['1'];
-  $value = $text['2'];
-  save("data/codes/$code.txt",$value);
-  SendMessage($chat_id,"کد با موفقیت ساخته شد .
-  کد : $code
-  مقدار : $value سکه");
-
-}
-elseif (strpos($textmessage,"/buy") !== false) {
-  $id = str_replace("/buy","",$textmessage);
-  if ($id == "") {
-      SendMessage($chat_id,"محصول در سیستم موجود نمیباشد");
+  //===============
+  elseif($text == 'زیرمجموعه گیری 📮'){
+  $member_id = explode("\n",$gold);
+  $mmemcount = count($member_id) -1;
+  SendMessage($chat_id,"http://telegram.me/$UserNameBot?start=$from_id
+  
+  تعداد زیرمجموعه های شما: $mmemcount","html","true",$button_official);
   }
-  else {
-    if (file_exists("data/products/$id.txt")) {
-      $product = file_get_contents("data/products/$id.txt");
-      $array = explode("(******)",$product);
-      $price = $array['3'];
-      $coin = file_get_contents("data/users/$from_id/coin.txt");
-      if ($coin >= $price) {
-        $coin = file_get_contents("data/users/".$from_id."/coin.txt");
-        settype($coin,"integer");
-        $newcoin = $coin - $price;
-        save("data/users/".$from_id."/coin.txt",$newcoin);
-        SendMessage($chat_id,"محصول مورد نظر خریداری شد");
-        SendMessage($chat_id,"لینک دانلود محصول :
-        ".$array['2']);
-      }
-      else {
-        SendMessage($chat_id,"شما الماس کافی نداید");
-      }
+  //===============
+  elseif($text == 'راهنما 📋'){
+  SendMessage($chat_id,"کار با این ربات ساده است. سکه بگیرید و به صورت هوشمند ویو بگیرید و تبلیغ کنید. با استفاده از گزینه جمع آوری سکه رایگان ، تبلیغ ببینید و سکه رایگان دریافت کنید ویا با گزینه زیر مجموعه گیری با لینک اختصاصی کاربران را به ربات دعوت کنید و سکه بگیرید. پس از دریافت حداقل سکه میتونید تبلیغات خود را ثبت کنید","html","true",$button_official);
+  }
+  //===============
+  elseif($text == 'حساب کاربری من 💡'){
+  SendMessage($chat_id,"موجودی شما: $coin
+  شماره کاربری شما: $from_id","html","true",$button_official);
+  }
+  //===============
+  elseif($text == 'نظرات کاربران 🏆'){
+  $exp = explode("(**##**)",$NZR);
+  $rand = $exp[rand(0,count($exp)-1)];
+  if($rand == null || $rand == '' || $rand == "\n"){
+  SendMessage($chat_id,"نظری موجود نیست.","html","true");
+  }else{
+  $txtt = file_get_contents('admin/Tedad Nazar.txt');
+  $member_id = explode("\n",$txtt);
+  $mmemcount = count($member_id) -1;
+  SendMessage($chat_id,"نظرات کاربران:
+  
+  $rand","html","true",$button_nz);
+  }
+  }
+  //===============
+  elseif($text == 'انتقال سکه ♐'){
+  file_put_contents('user/'.$from_id."/command.txt","send coin");
+  SendMessage($chat_id,"شماره کاربری مقصد رو وارد کنید:","html","true",$button_back);
+  }
+  elseif($command == 'send coin'){
+  $explode = explode("\n",$Member);
+  if($text != $from_id && in_array($text,$explode)){
+  file_put_contents('user/'.$from_id."/command.txt","send coin2");
+  file_put_contents('user/'.$from_id."/wait.txt",$text);
+  SendMessage($chat_id,"مقدار سکه شما: $coin
+  چه تعداد سکه میخوای انتقال بدی","html","true",$button_back);
+  }else{
+  SendMessage($chat_id,"شناسه کاربری نا معتبره یا شناسه کاربری خودتون رو وارد کردین","html","true",$button_back);
+  }
+  }
+  elseif($command == 'send coin2'){
+  if(preg_match('/^([0-9])/',$text)){
+  if($text > $coin){
+  SendMessage($chat_id,"مقدار سکه شما $coin میباشد
+شما بیشتر از ان نمیتوانید بردارید.","html","true",$button_back);
+  }else{
+  file_put_contents("user/$wait/coin.txt",($coin_wait+$text) );
+  file_put_contents("user/$from_id/coin.txt",($coin-$text) );
+  file_put_contents('user/'.$from_id."/command.txt","none");
+  SendMessage($chat_id,"انتقال داده شد","html","true",$button_official);
+  }
+  }else{
+  SendMessage($chat_id,"فقط باید عدد وارد کنید","html","true",$button_back);
+  SendMessage($wait,"تعداد $text سکه از:\n$from_first\n$from_username\nبه شما تعلق گرفت","html","true",$button_official);
+  }
+  }
+  //===============
+  elseif($text == 'ارسال نظر ✉'){
+  file_put_contents('user/'.$from_id."/command.txt","contact");
+  SendMessage($chat_id,"نظرتون رو وارد کنید","html","true",$button_back);
+  }
+  elseif($command == 'contact'){
+  if($text){
+  file_put_contents('user/'.$from_id."/command.txt","none");
+  SendMessage($chat_id,"ثبت شد","html","true",$button_official);
+  if($from_username == null){
+  $from_username = '---';
+  }else{
+  $from_username = "@$from_username";
+  }
+  SendMessage($admin,"$from_id
+  $from_first
+  $from_username
+  
+  $text","html","true",$button_nza);
+  file_put_contents("admin/Tedad Nazar.txt","$Tedad_Nazar\n$from_id");
+  }else{
+  SendMessage($chat_id,"دوست عزیز فقط متن ارسال کنید.","html","true",$button_back);
+  }
+  }
+  //===============
+  elseif($text == 'ثبت تبلیغات 📝'){
+  if($coin < 20){
+  SendMessage($chat_id,"حداقل سکه باید 20 باشد","html","true");
+  }else{
+  file_put_contents('user/'.$from_id."/command.txt","set ads");
+  if( ($coin%2) == 0){
+  $coin = $coin;
+  }else{
+  $coin = $coin-1;
+  }
+  $cn = $coin / 2;
+  SendMessage($chat_id,"شما میتونید $cn بازدید برای پست بزنید","html","true",$button_back);
+  }
+  }
+  elseif($command == 'set ads'){
+  if(preg_match('/^([0-9])/',$text)){
+  if($coin%2 == 0){
+  $coin = $coin;
+  }else{
+  $coin = $coin-1;
+  }
+  $cn = $coin / 2;
+  if ($cn < $text){
+  SendMessage($chat_id,"شما میتونید $cn بازدید برای پست بزنید
+چند بازدید میخواهید؟","html","true",$button_back);
+  }else{
+  file_put_contents('user/'.$from_id."/wait.txt",$text);
+  file_put_contents('user/'.$from_id."/command.txt","set ads2");
+  SendMessage($chat_id,"پیغام مورد نظر را فوروارد کنید.","html","true",$button_back);
+  }
+  }else{
+  SendMessage($chat_id,"فقط باید عدد وارد کنید","html","true",$button_back);
+  }
+  }
+  elseif($command == 'set ads2'){
+  $cd = $code;
+  if($forward_chat_username != null){
+  file_put_contents('user/'.$from_id."/command.txt","none");
+  file_put_contents("ads/ads msg id/$cd.txt",$forward_chat_msg_id);
+  file_put_contents("ads/ads tedad/$cd.txt",$wait);
+  file_put_contents("ads/ads username/$cd.txt","@$forward_chat_username");
+  file_put_contents("ads/ads tally/$cd.txt",'');
+  file_put_contents("ads/Ads.txt","$cd\n$ads");
+  file_put_contents("ads/ads admin/$cd.txt",$from_id);
+  file_put_contents("user/$from_id/coin.txt",($coin - ($wait*2)) );
+  SendMessage($chat_id,"ثبت شد
+  
+  کد سفارش: $cd","html","true",$button_official);
+  }else{
+  SendMessage($chat_id,"فقط باید از کانال عمومی فوروارد کنید.","html","true");
+  }
+  }
+  //===============
+  elseif($text == 'جمع آوری سکه رایگان 💰'){
+  $exp = explode("\n",$adnn);
+  $rnd = $exp[rand(0,count($exp)-1)];
+  $rand = $rnd;
+  $adnn = file_get_contents("ads/ads admin/$rand.txt");
+  if($rand == null || $rand == '' || $rand == "\n" || $from_id == $adnn){
+  SendMessage($chat_id,"تبلیغی برای نمایش وجود ندارد یا دوباره کلیک کنید.","html","true");
+  }
+else{
+  $msg_id = file_get_contents("ads/ads msg id/$rand.txt");
+  $msg_user = file_get_contents("ads/ads username/$rand.txt");
+  ForwardMessage($chat_id,$msg_user,$msg_id);
+  
+   $usr = file_get_contents("ads/ads tally/$rand.txt");
+    $pmembersid = explode("\n",$usr);
+    if (!in_array($from_id,$pmembersid)){
+		$aaddd = file_get_contents("ads/ads tally/$rand.txt");
+        $aaddd .= $from_id."\n";
+		file_put_contents("ads/ads tally/$rand.txt",$aaddd);
     }
-    else {
-      SendMessage($chat_id,"محصول در سیستم موجود نمیباشد");
-    }
+	
+    $member_id = explode("\n",$usr);
+    $mmemcount = count($member_id);
+	$tdd = file_get_contents("ads/ads tedad/$rand.txt");
+	
+	if($mmemcount >= $tdd){
+	SendMessage($ads,"سفارش تبلیغ با کد پیگیری $rand تموم شد.","html","true");
+	$str = str_replace("\n$rand",'',$adnn);
+	$str = str_replace("$rand",'',$ads);
+	file_put_contents("ads/Ads.txt",$str);
+	unlink("ads/ads msg id/$rand.txt");
+    unlink("ads/ads tedad/$rand.txt");
+    unlink("ads/ads username/$rand.txt");
+    unlink("ads/ads tally/$rand.txt");
+    unlink("ads/ads admin/$rand.txt");
+	}
+	}
   }
-
-}
-elseif (strpos($textmessage,"/transfer") !== false) {
-  $text = explode(" ",$textmessage);
-if ($coin >= $text['2'] && $text['2'] >= 1) {
-    $coin = file_get_contents("data/users/".$from_id."/coin.txt");
-    settype($coin,"integer");
-    if ($coin >= $text['2']) {
-if ( $text['2'] > 1) {
-      $newcoin = $coin - $text['2'];
-      save("data/users/".$from_id."/coin.txt",$newcoin);
-
-      $coin = file_get_contents("data/users/".$text['1']."/coin.txt");
-      settype($coin,"integer");
-      $newcoin = $coin + $text['2'];
-      save("data/users/".$text['1']."/coin.txt",$newcoin);
-      SendMessage($chat_id,"عملیات با موفقیت انجام شد");
-    SendMessage($text['1'],"تعداد ".$text['2']." الماس به شما اضافه شد");
-    else {
-      SendMessage($chat_id,"موجودی شما کافی نمیباشد");
-    }
+  //===============
+  elseif($text == 'کد رایگان 🔧'){
+  file_put_contents('user/'.$from_id."/command.txt","free code");
+  SendMessage($chat_id,"کد مورد نظر رو وارد کنید","html","true",$button_back);
   }
-  else {
-    SendMessage($chat_id,"Syntax Error!");
+  elseif($command == 'free code'){
+  if(file_exists("admin/code/$text.txt")){
+  $cde = file_get_contents("admin/code/$text.txt");
+  $exp = explode("\n",$cde);
+  if(in_array($from_id,$exp)){
+  file_put_contents('user/'.$from_id."/command.txt","none");
+  SendMessage($chat_id,"شما قبلا استفاده کردین","html","true",$button_official);
+  }else{
+  file_put_contents('user/'.$from_id."/command.txt","none");
+  file_put_contents('user/'.$from_id."/coin.txt",($coin+10));
+  file_put_contents("admin/code/$text.txt","$cde\n$from_id");
+  SendMessage($chat_id,"تعداد 10 سکه رایگان به حساب شما افزوده شد.","html","true",$button_official);
+  SendMessage($admin,"کد رایگان زده شد✅\nتوسط:\n$from_first\n@$from_username\n$from_id","html","true",$button_official);
   }
-}
-else {
-	SendMessage($chat_id,"مقدار انتقال میبایست بیشتر از 1 باشد");
-}
-} }
-
-elseif (strpos($textmessage,"/addgem") !== false && $from_id == $admin) {
-  $text = explode(" ",$textmessage);
-  if ($text['2'] != "" && $text['1'] != "") {
-    $coin = file_get_contents("data/users/".$text['1']."/coin.txt");
-    settype($coin,"integer");
-    $newcoin = $coin + $text['2'];
-    save("data/users/".$text['1']."/coin.txt",$newcoin);
-    SendMessage($chat_id,$text['2']."تعداد ".$text['2']." الماس به کاربر اضافه شد");
-    SendMessage($text['1'],"تعداد ".$text['2']." الماس به شما اضافه شد");
+  }else{
+  SendMessage($chat_id,"کد وجود نداشت","html","true",$button_back);
   }
-  else {
-    SendMessage($chat_id,"Syntax Error!");
   }
-}
-elseif ($textmessage == "حساب من ✔️") {
-  $coin = file_get_contents("data/users/$from_id/coin.txt");
-  SendMessage($chat_id,"نام شما : $name
-الماس ها : $coin
-شناسه شما : $chat_id");
-}
-else {
-  if (file_exists("data/products/$textmessage.txt")) {
-    $id = file_get_contents("data/products/$textmessage.txt");
-    $product = file_get_contents("data/products/$id.txt");
-    $array = explode("(******)",$product);
-
-    SendMessage($chat_id,"نام محصول :‌ ".$array['0']."
-
-    توضیحات محصول :
-    ".$array['1']."
-
-    قیمت :‌ ".$array['3']." الماس
-
-    خرید محصول با دستور /buy".$id);
+  //===============
+  elseif($text == '/manage' and $from_id == $admin){
+  SendMessage($chat_id,"به پنل مدیریت خوش اومدی","html","true",$button_manage);
   }
-  else {
-    SendMessage($chat_id,"`دستور مورد نظر یافت نشد`");
+  elseif($text == 'آمار' and $from_id == $admin){
+	$txtt = file_get_contents('admin/Member.txt');
+    $member_id = explode("\n",$txtt);
+    $mmemcount = count($member_id) -1;
+	SendMessage($chat_id,"کل کاربران: $mmemcount نفر","html","true");
+	}
+  elseif($text == 'فوروارد همگانی' and $from_id == $admin){
+	file_put_contents("user/".$from_id."/command.txt","s2a fwd");
+	SendMessage($chat_id,"پیام مورد نظر را فوروارد کنید","html","true",$button_back);
+	}
+	elseif($command == 's2a fwd' and $from_id == $admin){
+	file_put_contents("user/".$from_id."/command.txt","none");
+	SendMessage($chat_id,"پیام شما در صف ارسال قرار گرفت.","html","true",$button_manage);
+	$all_member = fopen( "admin/Member.txt", 'r');
+		while( !feof( $all_member)) {
+ 			$user = fgets( $all_member);
+			ForwardMessage($user,$admin,$message_id);
+		}
+	}
+	elseif($text == 'پیام همگانی' and $from_id == $admin){
+	file_put_contents("user/".$from_id."/command.txt","s2a");
+	SendMessage($chat_id,"پیامتون رو وارد کنید","html","true",$button_back);
+	}
+	elseif($command == 's2a' and $from_id == $admin){
+	file_put_contents("user/".$from_id."/command.txt","none");
+	SendMessage($chat_id,"پیام شما در صف ارسال قرار گرفت.","html","true",$button_manage);
+	$all_member = fopen( "admin/Member.txt", 'r');
+		while( !feof( $all_member)) {
+ 			$user = fgets( $all_member);
+			if($sticker_id != null){
+			SendSticker($user,$stickerid);
+			}
+			elseif($videoid != null){
+			SendVideo($user,$videoid,$caption);
+			}
+			elseif($voiceid != null){
+			SendVoice($user,$voiceid,'',$caption);
+			}
+			elseif($fileid != null){
+			SendDocument($user,$fileid,'',$caption);
+			}
+			elseif($musicid != null){
+			SendAudio($user,$musicid,'',$caption);
+			}
+			elseif($photoid != null){
+			SendPhoto($user,$photoid,'',$caption);
+			}
+			elseif($text != null){
+			SendMessage($user,$text,"html","true");
+			}
+		}
+	}
+  elseif($text == 'تعیین کد رایگان' and $from_id == $admin){
+  file_put_contents('user/'.$from_id."/command.txt","code free2");
+  SendMessage($chat_id,"کد مورد نظر رو وارد کنید","html","true",$button_back);
   }
-}unlink ("error_log");
-
-
-?>
+  elseif($command == 'code free2' and $from_id == $admin){
+  file_put_contents("admin/code/$text.txt","");
+  file_put_contents("user/".$from_id."/command.txt","none");
+  SendMessage($chat_id,"کد ثبت شد.","html","true",$button_manage);
+  }
+  elseif($text == 'سکه به کاربر' and $from_id == $admin){
+  file_put_contents('user/'.$from_id."/command.txt","send coin");
+  SendMessage($admin,"شماره کاربری مقصد رو وارد کنید:","html","true",$button_back);
+  }
+  elseif($command == 'send coin'){
+  $explode = explode("\n",$Member);
+  if($text != $from_id && in_array($text,$explode)){
+  file_put_contents('user/'.$from_id."/command.txt","send coin2");
+  file_put_contents('user/'.$from_id."/wait.txt",$text);
+  SendMessage($admin,"مقدار سکه را وارد کنید.","html","true",$button_back);
+  }else{
+  SendMessage($admin,"شناسه کاربری نامعتبر!","html","true",$button_back);
+  }
+  }
+  elseif($command == 'send coin2'){
+  if(preg_match('/^([0-9])/',$text)){
+  if($text > $coin){
+  SendMessage($admin,"خطای منبع!","html","true",$button_back);
+  }else{
+  file_put_contents("user/$wait/coin.txt",($coin_wait+$text) );
+  file_put_contents("user/$from_id/coin.txt",($coin-$text) );
+  file_put_contents('user/'.$from_id."/command.txt","none");
+  SendMessage($admin,"سکه ها به کاربر تعلق گرفتند.","html","true",$button_manage);
+  SendMessage($wait,"تعداد $text سکه از ادمین به شما تعلق گرفت","html","true",$button_official);
+  }
+  }else{
+  SendMessage($admin,"فقط عدد","html","true",$button_back);
+  }
+  }
+  // End Source
+  if(!file_exists('user/'.$from_id)){
+  mkdir('user/'.$from_id);
+  }
+  if(!file_exists('user/'.$from_id."/coin.txt")){
+  file_put_contents('user/'.$from_id."/coin.txt","1");
+  }
+  $txxt = file_get_contents('admin/Member.txt');
+    $pmembersid= explode("\n",$txxt);
+    if (!in_array($chat_id,$pmembersid)){
+      $aaddd = file_get_contents('admin/Member.txt');
+      $aaddd .= $chat_id."\n";
+		file_put_contents('admin/Member.txt',$aaddd);
+    }unlink('error_log');
+	?>
